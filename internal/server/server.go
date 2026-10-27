@@ -91,7 +91,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/stop", s.withAuth(s.handleStop))
 	mux.HandleFunc("/api/metrics", s.withAuth(s.handleNotImplemented))
 	mux.HandleFunc("/ws", s.withAuth(s.handleNotImplemented))
-	mux.Handle("/stream", s.withAuthHandler(streaming.MJPEGHandler(s.bc)))
+	mux.Handle("/stream", s.withAuthHandler(streaming.MJPEGHandler(s.bc, s.metrics)))
 
 	mux.Handle("/", http.FileServer(http.FS(web.Assets)))
 

@@ -15,6 +15,7 @@ type Capturer struct {
 	running bool
 	stopCh  chan struct{}
 	frames  chan capture.Frame
+	wg      sync.WaitGroup
 	seq     int
 }
 
@@ -42,18 +43,25 @@ func (c *Capturer) ListDisplays(_ context.Context) ([]capture.DisplayInfo, error
 
 func (c *Capturer) Start(ctx context.Context) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.running {
+		c.mu.Unlock()
 		return nil
 	}
 	c.running = true
 	c.stopCh = make(chan struct{})
 	c.frames = make(chan capture.Frame, 2)
-	go c.loop(ctx)
+	stopCh := c.stopCh
+	c.wg.Add(1)
+	c.mu.Unlock()
+
+	go func() {
+		defer c.wg.Done()
+		c.loop(ctx, stopCh)
+	}()
 	return nil
 }
 
-func (c *Capturer) loop(ctx context.Context) {
+func (c *Capturer) loop(ctx context.Context, stopCh <-chan struct{}) {
 	interval := time.Second / time.Duration(c.opts.FPS)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -61,19 +69,29 @@ func (c *Capturer) loop(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-c.stopCh:
+		case <-stopCh:
 			return
 		case <-ticker.C:
 			frame := c.syntheticFrame()
+			c.mu.Lock()
+			ch := c.frames
+			c.mu.Unlock()
+			if ch == nil {
+				return
+			}
 			select {
-			case c.frames <- frame:
+			case ch <- frame:
 			default:
 				select {
-				case old := <-c.frames:
+				case old := <-ch:
 					old.Release()
 				default:
 				}
-				c.frames <- frame
+				select {
+				case ch <- frame:
+				default:
+					frame.Release()
+				}
 			}
 		}
 	}
@@ -109,15 +127,19 @@ func (c *Capturer) Frames() <-chan capture.Frame {
 
 func (c *Capturer) Stop() error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if !c.running {
+		c.mu.Unlock()
 		return nil
 	}
 	close(c.stopCh)
 	c.running = false
-	if c.frames != nil {
-		close(c.frames)
-		c.frames = nil
+	ch := c.frames
+	c.frames = nil
+	c.mu.Unlock()
+
+	c.wg.Wait()
+	if ch != nil {
+		close(ch)
 	}
 	return nil
 }

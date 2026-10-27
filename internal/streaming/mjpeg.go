@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/guidiju-50/spyscreen/internal/metrics"
 )
 
 const mjpegBoundary = "screenshareframe"
 
-func MJPEGHandler(b *Broadcaster) http.Handler {
+func MJPEGHandler(b *Broadcaster, m *metrics.Collector) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		if !ok {
@@ -32,8 +34,12 @@ func MJPEGHandler(b *Broadcaster) http.Handler {
 					return
 				}
 				part := buildMJPEGPart(ef.JPEG)
-				if _, err := w.Write(part); err != nil {
+				n, err := w.Write(part)
+				if err != nil {
 					return
+				}
+				if m != nil {
+					m.AddBytes(int64(n))
 				}
 				flusher.Flush()
 			}
