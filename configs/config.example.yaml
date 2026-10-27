@@ -6,6 +6,7 @@ server:
   write_timeout_seconds: 30
 
 capture:
+  # CGDirectDisplayID; 0 selects the first available display if no exact match.
   display_id: 0
   fps: 15
   width: 1920

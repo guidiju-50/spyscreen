@@ -6,6 +6,7 @@ const statusEl = document.getElementById('status');
 const fpsEl = document.getElementById('fps');
 const resolutionEl = document.getElementById('resolution');
 const bitrateEl = document.getElementById('bitrate');
+const serverStatusEl = document.getElementById('server-status');
 const canvas = document.getElementById('frame');
 const ctx = canvas.getContext('2d');
 
@@ -17,6 +18,7 @@ let backoffMs = 1000;
 let frameCount = 0;
 let byteCount = 0;
 let statsTimer = null;
+let statusPollTimer = null;
 
 function authHeaders() {
   const token = tokenInput.value.trim();
@@ -60,6 +62,33 @@ function startStats() {
 function stopStats() {
   if (statsTimer) clearInterval(statsTimer);
   statsTimer = null;
+}
+
+async function pollServerStatus() {
+  try {
+    const res = await fetch('/api/status', { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    const parts = [];
+    if (data.running) parts.push('capturing');
+    if (data.encode_fps) parts.push(`enc ${data.encode_fps.toFixed(1)} fps`);
+    if (data.connected_clients != null) parts.push(`${data.connected_clients} viewer(s)`);
+    serverStatusEl.textContent = parts.length ? parts.join(' · ') : 'idle';
+  } catch {
+    /* ignore */
+  }
+}
+
+function startStatusPoll() {
+  if (statusPollTimer) clearInterval(statusPollTimer);
+  statusPollTimer = setInterval(pollServerStatus, 2000);
+  pollServerStatus();
+}
+
+function stopStatusPoll() {
+  if (statusPollTimer) clearInterval(statusPollTimer);
+  statusPollTimer = null;
+  serverStatusEl.textContent = '—';
 }
 
 async function readMJPEGStream(signal) {
@@ -147,6 +176,7 @@ async function connect() {
   fullscreenBtn.disabled = false;
   setStatus('Connecting…');
   startStats();
+  startStatusPoll();
 
   try {
     await apiPost('/api/start');
@@ -184,6 +214,7 @@ function disconnect(callStop = true) {
     abortController = null;
   }
   stopStats();
+  stopStatusPoll();
   connectBtn.disabled = false;
   disconnectBtn.disabled = true;
   fullscreenBtn.disabled = true;
