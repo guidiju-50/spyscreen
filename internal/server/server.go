@@ -123,7 +123,11 @@ func (s *Server) handleNotImplemented(w http.ResponseWriter, _ *http.Request) {
 	http.Error(w, "not implemented", http.StatusNotImplemented)
 }
 
-func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	wid, ht := s.bc.Dimensions()
 	if wid == 0 {
@@ -135,6 +139,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleDisplays(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	if s.capturer == nil {
 		http.Error(w, "capturer unavailable", http.StatusServiceUnavailable)
 		return
@@ -219,6 +227,11 @@ func (s *Server) clientLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/stream" {
 			next.ServeHTTP(w, r)
+			return
+		}
+		if !s.auth.Authorize(r) {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="screenshare"`)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 		s.mu.Lock()
