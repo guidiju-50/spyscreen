@@ -27,6 +27,6 @@ func TestDarwinCaptureOneFrame(t *testing.T) {
 			t.Fatal("empty frame")
 		}
 	case <-ctx.Done():
-		t.Fatal("timeout waiting for frame — grant Screen Recording to Terminal or the test binary")
+		t.Fatal("timeout waiting for frame — grant Screen Recording to Terminal/Cursor, then retry; if permission is already granted, rebuild after updating capture code")
 	}
 }

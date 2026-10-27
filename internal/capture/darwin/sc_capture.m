@@ -9,6 +9,15 @@
 static SCStream *g_stream = nil;
 static id g_output = nil;
 
+static dispatch_queue_t sc_sample_queue(void) {
+    static dispatch_queue_t queue;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        queue = dispatch_queue_create("com.guidiju-50.spyscreen.scstream", DISPATCH_QUEUE_SERIAL);
+    });
+    return queue;
+}
+
 @interface SCFrameOutput : NSObject <SCStreamOutput>
 @property(nonatomic, assign) sc_frame_callback callback;
 @property(nonatomic, assign) void *userData;
@@ -165,7 +174,7 @@ int sc_stream_start(
         output.userData = user_data;
 
         NSError *addError = nil;
-        [stream addStreamOutput:output type:SCStreamOutputTypeScreen sampleHandlerQueue:dispatch_get_main_queue() error:&addError];
+        [stream addStreamOutput:output type:SCStreamOutputTypeScreen sampleHandlerQueue:sc_sample_queue() error:&addError];
         if (addError != nil) {
             blockError = addError;
             dispatch_semaphore_signal(sem);
