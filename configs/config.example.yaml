@@ -1,0 +1,31 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+  max_clients: 3
+  read_timeout_seconds: 15
+  write_timeout_seconds: 30
+
+capture:
+  display_id: 0
+  fps: 15
+  width: 1920
+  height: 1080
+
+encoding:
+  type: "jpeg"
+  jpeg_quality: 70
+  drop_old_frames: true
+
+stream:
+  protocol: "mjpeg"
+  buffer_size: 2
+
+security:
+  token_env: "SCREENSHARE_TOKEN"
+  tls_enabled: false
+  tls_cert_file: ""
+  tls_key_file: ""
+
+logging:
+  level: "info"
+  format: "json"

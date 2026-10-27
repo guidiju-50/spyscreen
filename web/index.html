@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScreenShare LAN Viewer</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="layout">
+    <header>
+      <h1>ScreenShare LAN</h1>
+      <p class="subtitle">Viewer (Linux / any browser). No screen capture permissions required here.</p>
+    </header>
+
+    <section class="panel controls">
+      <label>
+        Access token
+        <input id="token" type="password" autocomplete="off" placeholder="Bearer token" />
+      </label>
+      <div class="buttons">
+        <button id="connect">Connect</button>
+        <button id="disconnect" disabled>Disconnect</button>
+        <button id="fullscreen" disabled>Fullscreen</button>
+        <a href="/diagnostics/index.html">Diagnostics</a>
+      </div>
+      <p id="status" class="status">Disconnected</p>
+    </section>
+
+    <section class="panel stats">
+      <div><span>FPS received</span><strong id="fps">0</strong></div>
+      <div><span>Resolution</span><strong id="resolution">—</strong></div>
+      <div><span>Bitrate</span><strong id="bitrate">0 kbps</strong></div>
+      <div><span>Latency note</span><strong id="latency">Local estimate only</strong></div>
+    </section>
+
+    <section class="viewer">
+      <canvas id="frame" width="1280" height="720" aria-label="Remote screen"></canvas>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
